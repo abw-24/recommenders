@@ -1,2 +1,2 @@
 # recommenders
-Various architectures for recommender systems
+Various architectures for recommender systems at scale
