@@ -10,7 +10,7 @@ import tensorflow as tf
 
 class Process(object):
 
-    TRAIN_FILENAMES = ["combined_data_{}".format(i) for i in range(1, 5)]
+    TRAIN_FILENAMES = ["combined_data_{}.txt".format(i) for i in range(1, 5)]
     TITLE_FILENAME = "movie_titles.csv"
     VALIDATION_FILENAME = "probe.txt"
 
@@ -30,8 +30,9 @@ class Process(object):
         self._training_paths = [os.path.join(self._dir, t) for t in self.TRAIN_FILENAMES]
         self._validation_path = os.path.join(self._dir, self.VALIDATION_FILENAME)
 
-        self._train = {}
+        self._labeled_data = {}
         self._current_movie = None
+        self._n_movies = 0
         self._n_users = 0
         self._train_map = {}
         self._test_map = {}
@@ -43,11 +44,12 @@ class Process(object):
         :return: Array of [date, sparse vector tuple]
         """
 
-        line_elements = line.split(",")
+        line_elements = line.strip("\n").split(",")
 
         if len(line_elements) == 1:
-            # make sure to offset the movie ID, as it's indexed from 1
-            self._current_movie = int(line_elements[0][:-1]) - 1
+            # make sure to offset the movie ID by 1, as it's indexed from 1
+            self._current_movie = int(line_elements[0].split(":")[0]) - 1
+            self._n_movies += 1
             return None
 
         date = line_elements[2]
@@ -61,14 +63,14 @@ class Process(object):
 
         return date, sparse_vec
 
-    def load_training(self):
+    def load_training(self, files=(0,1,2,3)):
         """
         Iterate over training data files and load line-by-line.
         """
 
-        for file in self._training_paths:
+        for i, file in enumerate([self._training_paths[f] for f in files]):
 
-            with open(file, "rb") as f:
+            with open(file, "r") as f:
 
                 for line in f:
 
@@ -82,11 +84,11 @@ class Process(object):
                         user_id, sparse_vec = parsed_data
 
                     try:
-                        self._train[user_id]["indices"].append(sparse_vec["indices"])
-                        self._train[user_id]["values"].extend(sparse_vec["values"])
+                        self._labeled_data[user_id]["indices"].append(sparse_vec["indices"])
+                        self._labeled_data[user_id]["values"].extend(sparse_vec["values"])
 
                     except KeyError:
-                        self._train[user_id] = {
+                        self._labeled_data[user_id] = {
                             "indices": [sparse_vec["indices"]],
                             "values": sparse_vec["values"]
                         }
@@ -98,7 +100,6 @@ class Process(object):
                         else:
                             self._test_map[self._n_users] = user_id
                         self._n_users += 1
-
 
     def masked_batch(self, batch_size=32, mask_rate=0.5):
         """
@@ -128,15 +129,15 @@ class Process(object):
 
         for k in batch_keys:
 
-            indices = self._train[k]["indices"]
-            values = self._train[k]["values"]
+            indices = self._labeled_data[k]["indices"]
+            values = self._labeled_data[k]["values"]
 
             # for the target, just append a sparse tensor of the true data
-            masked.append(tf.SparseTensor(indices, values, [self.MOVIE_DIM]))
+            masked.append(tf.SparseTensor(indices, values, [self._n_movies]))
 
             # for the masked input, flip a coin based on the `noise` level to determine
             # if each value is masked, and create a sparse tensor
             masked_values = [-1 if np.random.binomial(1, mask_rate) else v for v in values]
-            masked.append(tf.SparseTensor(indices, masked_values, [self.MOVIE_DIM]))
+            masked.append(tf.SparseTensor(indices, masked_values, [self._n_movies]))
 
         return masked, target
