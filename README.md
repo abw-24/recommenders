@@ -1,2 +1,2 @@
 # recommenders
-Architectures for recommender systems, benchmarked on the netflix prize data.
+Architectures for recommender systems, benchmarked on the Netflix prize data.
