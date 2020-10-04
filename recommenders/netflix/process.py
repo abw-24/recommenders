@@ -102,7 +102,7 @@ class Process(object):
                             self._test_map[self._n_users] = user_id
                         self._n_users += 1
 
-    def masked_batch(self, data="train", batch_size=32, mask_rate=0.5):
+    def masked_batch(self, data="train", batch_size=32, mask_rate=0.2):
         """
         Use the user map and sparse formatted training data to grab
         a random batch, mask, and return lists of both the original
@@ -148,3 +148,7 @@ class Process(object):
             masked.append(tf.SparseTensor(indices, masked_values, [self._n_movies]))
 
         return masked, target
+
+    @property
+    def input_dim(self):
+        return self._n_movies

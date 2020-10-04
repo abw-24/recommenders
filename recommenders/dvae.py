@@ -1,3 +1,0 @@
-"""
-De-noising Variational AutoEncoder
-"""
