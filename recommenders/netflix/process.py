@@ -40,6 +40,7 @@ class Process(object):
     def _parse_training_line(self, line):
         """
         Parse a single line of training data into sparse format.
+        Normalizes ratings by dividing everything by 5.
         :param line: Single line (string) of raw training data
         :return: Array of [date, sparse vector tuple]
         """
@@ -57,7 +58,7 @@ class Process(object):
             line_elements[0],
             {
                 "indices": [self._current_movie],
-                "values": [int(line_elements[1])]
+                "values": [int(line_elements[1])/5.0]
             }
         )
 
@@ -101,11 +102,12 @@ class Process(object):
                             self._test_map[self._n_users] = user_id
                         self._n_users += 1
 
-    def masked_batch(self, batch_size=32, mask_rate=0.5):
+    def masked_batch(self, data="train", batch_size=32, mask_rate=0.5):
         """
         Use the user map and sparse formatted training data to grab
         a random batch, mask, and return lists of both the original
-        and masked batches for training.
+        and masked batches for training or evaluation.
+        :param data: Specification of "train" or "test" batches
         :param batch_size: Batch size
         :param mask_rate: Mask Rate
         :return: Array of [masked_batch, target_batch]
@@ -116,11 +118,16 @@ class Process(object):
         batch_len = 0
         batch_keys = []
 
-        # take a random set of batch keys
+        # take a random set of batch keys from the specified data
         while batch_len < batch_size:
             batch_index = np.random.randint(0, self._n_users)
             try:
-                batch_key = self._train_map[batch_index]
+                if data == "train":
+                    batch_key = self._train_map[batch_index]
+                elif data == "test":
+                    batch_key = self._test_map[batch_index]
+                else:
+                    raise ValueError("Argument `data` can only take values 'train' or 'test'")
             except KeyError:
                 continue
             else:
