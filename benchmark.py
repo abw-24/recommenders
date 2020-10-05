@@ -1,5 +1,5 @@
 """
-Netflix benchmark.
+End-to-end benchmarking (Netflix data processing, training, evaluation).
 """
 
 
@@ -35,8 +35,8 @@ def main():
     from recommenders import train
     from recommenders.netflix.process import Process
 
-    parser = ap.ArgumentParser(description='Benchmarking recommender systems '
-                                           'with the Netflix Prize data.')
+    parser = ap.ArgumentParser(description='Benchmarking recommender systems'
+                                           ' with the Netflix Prize data.')
     parser.add_argument('--data-dir', dest='data_dir', action='store',
                         default=None, help='Data directory.')
     parser.add_argument('--config', dest='config', action='store',

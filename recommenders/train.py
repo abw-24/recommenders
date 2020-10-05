@@ -1,5 +1,5 @@
 """
-Top level training classes
+Top level training classes.
 """
 
 from nets import dense, train
