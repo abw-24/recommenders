@@ -1,5 +1,5 @@
 """
-Process Netflix data for benchmarking.
+Process Netflix data for training/evaluation.
 """
 
 
@@ -102,7 +102,7 @@ class Process(object):
                             self._test_map[self._n_users] = user_id
                         self._n_users += 1
 
-    def masked_batch(self, data="train", batch_size=32, mask_rate=0.5):
+    def masked_batch(self, data="train", batch_size=32, mask_rate=0.2):
         """
         Use the user map and sparse formatted training data to grab
         a random batch, mask, and return lists of both the original
@@ -113,11 +113,8 @@ class Process(object):
         :return: Array of [masked_batch, target_batch]
         """
 
-        masked = []
-        target = []
         batch_len = 0
         batch_keys = []
-
         # take a random set of batch keys from the specified data
         while batch_len < batch_size:
             batch_index = np.random.randint(0, self._n_users)
@@ -134,17 +131,24 @@ class Process(object):
                 batch_keys.append(batch_key)
                 batch_len += 1
 
-        for k in batch_keys:
+        index_pairs = []
+        values = []
+        # iterate over batch keys and extend the index pairs/values to create
+        # a single 2-d tensor for the entire batch (users are rows)
+        for i, k in enumerate(batch_keys):
+            index_pairs.extend([[i, j] for j in self._labeled_data[k]["indices"]])
+            values.extend(self._labeled_data[k]["values"])
 
-            indices = self._labeled_data[k]["indices"]
-            values = self._labeled_data[k]["values"]
+        # for the target, create a sparse tensor of the true data
+        target = tf.SparseTensor(index_pairs, values, [batch_size, self._n_movies])
 
-            # for the target, just append a sparse tensor of the true data
-            masked.append(tf.SparseTensor(indices, values, [self._n_movies]))
-
-            # for the masked input, flip a coin based on the `noise` level to determine
-            # if each value is masked, and create a sparse tensor
-            masked_values = [-1 if np.random.binomial(1, mask_rate) else v for v in values]
-            masked.append(tf.SparseTensor(indices, masked_values, [self._n_movies]))
+        # for the masked input, flip a coin based on the `noise` level to determine
+        # if each value is masked, and create a sparse tensor
+        masked_values = [-1 if np.random.binomial(1, mask_rate) else v for v in values]
+        masked = tf.SparseTensor(index_pairs, masked_values, [batch_size, self._n_movies])
 
         return masked, target
+
+    @property
+    def input_dim(self):
+        return self._n_movies
