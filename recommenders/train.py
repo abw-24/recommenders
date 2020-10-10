@@ -3,6 +3,7 @@ Top level training classes.
 """
 
 from nets import dense, train
+import tensorflow as tf
 
 
 class TrainVanillaDVAE(object):
@@ -32,13 +33,20 @@ class TrainVanillaDVAE(object):
 
         batch_size = train_config["batch_size"]
         mask_rate = train_config["mask_rate"]
+        n_batches = train_config["n_batches"]
 
-        for i in range(train_config["n_batches"]):
+        for i in range(n_batches):
 
             masked, target = data_obj.masked_batch("train", batch_size, mask_rate)
-            loss_, grads = train.grad(self._compiled_model, masked, target)
+            # for now, convert sparse tensor to dense to get it working...
+            #TODO: explore solutions for using SparseTensor directly
+            loss_, grads = train.grad(
+                    self._compiled_model,
+                    tf.sparse.to_dense(masked),
+                    tf.sparse.to_dense(target)
+            )
             updates = zip(grads, self._compiled_model.trainable_variables)
             self._compiled_model.optimizer.apply_gradients(updates)
 
-            if i % 10 == 0:
+            if i % 100 == 0:
                 print("Batch {b} loss: {l}".format(b=i, l=loss_))

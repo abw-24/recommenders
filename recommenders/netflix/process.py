@@ -85,12 +85,13 @@ class Process(object):
                         user_id, sparse_vec = parsed_data
 
                     try:
-                        self._labeled_data[user_id]["indices"].append(sparse_vec["indices"])
+                        self._labeled_data[user_id]["indices"].extend(sparse_vec["indices"])
                         self._labeled_data[user_id]["values"].extend(sparse_vec["values"])
 
                     except KeyError:
+                        # if we can't find the id, it's a new user.
                         self._labeled_data[user_id] = {
-                            "indices": [sparse_vec["indices"]],
+                            "indices": sparse_vec["indices"],
                             "values": sparse_vec["values"]
                         }
 
@@ -114,37 +115,33 @@ class Process(object):
         """
 
         batch_len = 0
-        batch_keys = []
-        # take a random set of batch keys from the specified data
+        index_pairs = []
+        values = []
+
+        # construct batch
         while batch_len < batch_size:
+
             batch_index = np.random.randint(0, self._n_users)
             try:
                 if data == "train":
-                    batch_key = self._train_map[batch_index]
+                    k = self._train_map[batch_index]
                 elif data == "test":
-                    batch_key = self._test_map[batch_index]
+                    k = self._test_map[batch_index]
                 else:
                     raise ValueError("Argument `data` can only take values 'train' or 'test'")
             except KeyError:
                 continue
             else:
-                batch_keys.append(batch_key)
+                index_pairs.extend([[batch_len, j] for j in self._labeled_data[k]["indices"]])
+                values.extend(self._labeled_data[k]["values"])
                 batch_len += 1
-
-        index_pairs = []
-        values = []
-        # iterate over batch keys and extend the index pairs/values to create
-        # a single 2-d tensor for the entire batch (users are rows)
-        for i, k in enumerate(batch_keys):
-            index_pairs.extend([[i, j] for j in self._labeled_data[k]["indices"]])
-            values.extend(self._labeled_data[k]["values"])
 
         # for the target, create a sparse tensor of the true data
         target = tf.SparseTensor(index_pairs, values, [batch_size, self._n_movies])
 
         # for the masked input, flip a coin based on the `noise` level to determine
-        # if each value is masked, and create a sparse tensor
-        masked_values = [-1 if np.random.binomial(1, mask_rate) else v for v in values]
+        # if each value is masked, and then create the sparse tensor
+        masked_values = [-1.0 if np.random.binomial(1, mask_rate) else v for v in values]
         masked = tf.SparseTensor(index_pairs, masked_values, [batch_size, self._n_movies])
 
         return masked, target

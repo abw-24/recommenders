@@ -15,12 +15,11 @@ config_ = {
                 "latent_dim": 32,
                 "activation": "relu",
                 "optimizer": {"Adam": {"learning_rate": 0.001}},
-                "loss": {"MeanSquaredError": {}},
-            },
-            "train_config": {
+                "loss": {"MeanAbsoluteError": {}},
+                "sparse_flag": False,
                 "batch_size": 32,
-                "n_batches": 1000,
-                "mask_rate": 0.8
+                "n_batches": 10000,
+                "mask_rate": 0.2
             }
         }
     ]
@@ -55,7 +54,7 @@ def main():
     for c in config_["models"]:
         c["method_config"]["input_dim"] = netflix_batcher.input_dim
         model = getattr(train, c["method"])(c["method_config"])
-        model.train(netflix_batcher, c["train_config"])
+        model.train(netflix_batcher, c["method_config"])
 
 
 if __name__ == "__main__":
