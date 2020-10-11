@@ -18,9 +18,8 @@ class Process(object):
 
     def __init__(self, data_dir, train_test_split=0.8):
         """
-        Process Netflix movie data into various forms for recommender problems.
-        Utilizes a dictionary-style sparse storage format upon read in to conserve memory
-        usage both for the raw data and to avoid any explicit groupBy operations.
+        Process Netflix movie data (as available via kaggle)for recommender problems.
+        Utilizes a dictionary sparse storage format upon read-in to conserve memory.
         :param data_dir: Data directory
         :param train_test_split: Train/test split rate (value specifies train)
         """
@@ -141,7 +140,7 @@ class Process(object):
 
         # for the masked input, flip a coin based on the `noise` level to determine
         # if each value is masked, and then create the sparse tensor
-        masked_values = [-1.0 if np.random.binomial(1, mask_rate) else v for v in values]
+        masked_values = [-0.5 if np.random.binomial(1, mask_rate) else v for v in values]
         masked = tf.SparseTensor(index_pairs, masked_values, [batch_size, self._n_movies])
 
         return masked, target
