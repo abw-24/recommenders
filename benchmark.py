@@ -4,22 +4,23 @@ End-to-end benchmarking (Netflix data processing, training, evaluation).
 
 
 config_ = {
-    "train_files": [0],
+    "train_files": [0,1],
     "train_test_split": 0.8,
-    "evaluation": "mse",
     "models": [
         {
             "method": "TrainVanillaDVAE",
             "method_config": {
-                "encoding_dims": [256, 128],
+                "encoding_dims": [512, 128],
                 "latent_dim": 32,
                 "activation": "relu",
                 "optimizer": {"Adam": {"learning_rate": 0.001}},
                 "loss": {"MeanAbsoluteError": {}},
                 "sparse_flag": False,
-                "batch_size": 32,
-                "n_batches": 10000,
-                "mask_rate": 0.2
+                "batch_size": 64,
+                "n_batches": 200,
+                "mask_rate": [0.1, 0.5],
+                "mask_schedule": "random",
+                "n_evaluations": 100
             }
         }
     ]
@@ -53,8 +54,8 @@ def main():
 
     for c in config_["models"]:
         c["method_config"]["input_dim"] = netflix_batcher.input_dim
-        model = getattr(train, c["method"])(c["method_config"])
-        model.train(netflix_batcher, c["method_config"])
+        model = getattr(train, c["method"])(netflix_batcher, c["method_config"])
+        model.train()
 
 
 if __name__ == "__main__":
