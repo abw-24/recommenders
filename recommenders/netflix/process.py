@@ -39,7 +39,7 @@ class Process(object):
     def _parse_training_line(self, line):
         """
         Parse a single line of training data into sparse format.
-        Normalizes ratings by dividing everything by 5.
+        Rescales ratings by dividing everything by 5 (the max).
         :param line: Single line (string) of raw training data
         :return: Array of [date, sparse vector tuple]
         """
