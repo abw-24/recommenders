@@ -4,17 +4,17 @@ End-to-end benchmarking (Netflix data processing, training, evaluation).
 
 
 config_ = {
-    "train_files": [0, 1],
+    "train_files": [0],
     "train_test_split": 0.8,
     "models": [
         {
-            "method": "TrainVanillaDAE",
+            "method": "TrainSparseDAE",
             "method_config": {
                 "encoding_dims": [512, 128],
                 "latent_dim": 32,
                 "activation": "sigmoid",
                 "optimizer": {"Adam": {"learning_rate": 0.001}},
-                "loss": {"MeanAbsoluteError": {}},
+                "loss": "sparse_mean_absolute_error",
                 "activity_regularizer": {"L1": {"l1": 0.005}},
                 "sparse_flag": False,
                 "batch_size": 64,
