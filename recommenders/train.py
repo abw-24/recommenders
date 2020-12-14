@@ -5,6 +5,7 @@ Top level training classes.
 from nets import dense, train
 import tensorflow as tf
 import numpy as np
+from recommenders import sdae
 
 
 class MaskedTFTrain(object):
@@ -67,10 +68,14 @@ class MaskedTFTrain(object):
         for i in range(self._n_evals):
             masked, target = self._data_obj.masked_batch("test", batch_size, 0.2)
             prediction = self._compiled_model(tf.sparse.to_dense(masked))
-            test_loss += self._compiled_model.loss(tf.sparse.to_dense(target), prediction)
+            test_loss += self._compiled_model.compiled_loss(tf.sparse.to_dense(target), prediction)
             predictions.append(prediction.numpy()[0])
 
         print("Average Test Loss: {}".format(test_loss/self._n_evals))
+
+    @property
+    def compiled_model(self):
+        return self._compiled_model
 
 
 class TrainVanillaDVAE(MaskedTFTrain):
@@ -84,7 +89,7 @@ class TrainVanillaDVAE(MaskedTFTrain):
 
         compiled = train.model_init(
             self._model,
-            method_config.get("loss", None),
+            method_config["loss"],
             method_config["optimizer"],
             (None, method_config["input_dim"])
         )
@@ -103,9 +108,28 @@ class TrainVanillaDAE(MaskedTFTrain):
 
         compiled = train.model_init(
             self._model,
-            method_config.get("loss", None),
+            method_config["loss"],
             method_config["optimizer"],
             (None, method_config["input_dim"])
         )
 
         super(TrainVanillaDAE, self).__init__(data_obj, method_config, compiled)
+
+
+class TrainSparseDAE(MaskedTFTrain):
+    """
+    Train a vanilla VAE from the `nets` repo.
+    """
+
+    def __init__(self, data_obj, method_config):
+
+        self._model = dense.DenseAE(method_config)
+
+        compiled = train.model_init(
+            self._model,
+            getattr(sdae, method_config["loss"]),
+            method_config["optimizer"],
+            (None, method_config["input_dim"])
+        )
+
+        super(TrainSparseDAE, self).__init__(data_obj, method_config, compiled)
